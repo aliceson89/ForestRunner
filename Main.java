@@ -64,8 +64,6 @@ public class Main extends AbstractGame
   /////////////////////////////////////////////////////////////////////////////////////
 
 
-
-
   //Player Movement directions
   final int UP = -1;
   final int DOWN = 1;
@@ -192,6 +190,7 @@ public class Main extends AbstractGame
   //Text Location
   Vector2F titleTxtLoc;
   Vector2F scoreTxtLoc;
+  Vector2F highScoreLoc;
   Vector2F healthTxtLoc;
   Vector2F timerTxtLoc;
 
@@ -283,6 +282,7 @@ public class Main extends AbstractGame
 
     //Location of Text in GamePlay
     titleTxtLoc = new Vector2F(windowWidth - 400,65);
+    highScoreLoc = new Vector2F(500,100);
     scoreTxtLoc = new Vector2F(100,100);
     healthTxtLoc = new Vector2F(300,100);
     timerTxtLoc = new Vector2F(740,100);
@@ -347,11 +347,6 @@ public class Main extends AbstractGame
       //GameRectangle(int x, int y, int width, int height, float borderWidth, Color borderColor, Color fillColor, float transparency)
       rectangles2Enemies[i] = new GameRectangle(0,0,60,20,3,Helper.GRAY,Helper.ORANGE,0);
     }
-
-
-
-
-
   }
 
   public void Update(GameContainer gc, float deltaTime)
@@ -444,8 +439,9 @@ public class Main extends AbstractGame
       {
         case PLAY:
           //Setup the first round
-          //SetupRound();
+          SetupFirstRound();
           gameState = GAMEPLAY;
+          System.out.println("Play start");
           break;
 
         case INSTRUCT:
@@ -590,10 +586,10 @@ public class Main extends AbstractGame
     }
 
 
-
-
-
-
+    /**
+     * Enemy 1 : Circle
+     * Can kill with bullet
+     */
     //Every specific time to generate Circle enemy
     if (timer % circleFrequency == 0)
     {
@@ -702,6 +698,12 @@ public class Main extends AbstractGame
       }
     }
 
+
+
+    /**
+     * Enemy 2 : Rectangles1
+     * Can not kill but need to escape with jump action
+     */
     //Every specific time to generate Rectangle1 enemy
 
     if (timer % rectangles1Frequency == 0)
@@ -717,6 +719,41 @@ public class Main extends AbstractGame
       }
     }
 
+    //Move each active enemy to the left of the screen at its own random speed
+    for (int i = 0; i < rectangles1Enemies.length; i++)
+    {
+      //Only move active enemies
+      if (rectangles1Enemies[i].GetTransparency() > 0)
+      {
+        rectangles1Enemies[i].Translate(-enemySpeed ,0);
+        //Has the enemy completely passed the left edge
+        if (rectangles1Enemies[i].GetCentre().x + rectangles1Enemies[i].GetRec().getWidth() <= 0)
+        {
+          rectangles1Enemies[i].SetTransparency(0);
+        }
+      }
+    }
+
+    /*If an active enemy leaves the left of the screen, deactivate it and reduce score
+    for (int i = 0; i < rectangles1Enemies.length; i++)
+    {
+      //Only collide active enemies
+      if (rectangles1Enemies[i].GetTransparency() > 0)
+      {
+        //Has the enemy completely passed the left edge
+        if (rectangles1Enemies[i].GetCentre().x + rectangles1Enemies[i].GetRec().getWidth() <= 0)
+        {
+          rectangles1Enemies[i].SetTransparency(0);
+        }
+      }
+    }
+
+     */
+
+    /**
+     * Enemy 3 : Rectangles2
+     * Can not kill but need to escape with duck action
+     */
     //Every specific time to generate Rectangle2 enemy
 
     if (timer % rectangles2Frequency == 0)
@@ -740,10 +777,15 @@ public class Main extends AbstractGame
       if (rectangles2Enemies[i].GetTransparency() > 0)
       {
         rectangles2Enemies[i].Translate(-enemySpeed ,0);
+        //Has the enemy completely passed the left edge
+        if (rectangles2Enemies[i].GetCentre().x + rectangles2Enemies[i].GetRec().getWidth() <= 0)
+        {
+          rectangles2Enemies[i].SetTransparency(0);
+        }
       }
     }
 
-    //If an active enemy leaves the left of the screen, deactivate it and reduce score
+    /*If an active enemy leaves the left of the screen, deactivate it and reduce score
     for (int i = 0; i < rectangles2Enemies.length; i++)
     {
       //Only collide active enemies
@@ -756,34 +798,13 @@ public class Main extends AbstractGame
         }
       }
     }
-
-    //Move each active enemy to the left of the screen at its own random speed
-    for (int i = 0; i < rectangles1Enemies.length; i++)
-    {
-      //Only move active enemies
-      if (rectangles1Enemies[i].GetTransparency() > 0)
-      {
-        rectangles1Enemies[i].Translate(-enemySpeed ,0);
-      }
-    }
-
-    //If an active enemy leaves the left of the screen, deactivate it and reduce score
-    for (int i = 0; i < rectangles1Enemies.length; i++)
-    {
-      //Only collide active enemies
-      if (rectangles1Enemies[i].GetTransparency() > 0)
-      {
-        //Has the enemy completely passed the left edge
-        if (rectangles1Enemies[i].GetCentre().x + rectangles1Enemies[i].GetRec().getWidth() <= 0)
-        {
-          rectangles1Enemies[i].SetTransparency(0);
-        }
-      }
-    }
+    */
 
 
 
-    if (health < 1 || (roundNum > 4)){
+
+
+    if (health < 1){
       EndGame();
     }
 
@@ -1115,7 +1136,9 @@ public class Main extends AbstractGame
     timer = 0;
     //set circle enemy frequency
     circleFrequency -= 100000;
+    //set rectangles1 enemy frequency
     rectangles1Frequency -= 100000;
+    //set rectangles2 enemy frequency
     rectangles2Frequency -= 100000;
 
 
@@ -1134,8 +1157,29 @@ public class Main extends AbstractGame
       explosions[i].destRec.y = (int)INACTIVE.y;
     }
 
-
   }
+
+  private void SetupFirstRound()
+ {
+
+    timer = 0;
+    circleFrequency = 1000000f;
+    rectangles1Frequency = 300000f;
+    rectangles2Frequency = 700000f;
+
+    xDir = RIGHT;
+
+    //Reset bullets
+    SetObjectsInactive(bulletImgs, bulletsPos);
+
+    //Deactivate all explosions
+    for (int i = 0; i < explosions.length; i++)
+    {
+      explosions[i].StopAnimation();
+      explosions[i].destRec.x = (int)INACTIVE.x;
+      explosions[i].destRec.y = (int)INACTIVE.y;
+    }
+}
 
 
   //Pre: x and y are valid coordinates on the screen
@@ -1225,8 +1269,12 @@ public class Main extends AbstractGame
 
     Draw.Text(gfx,scoreMsg , scoreTxtLoc.x, scoreTxtLoc.y, hudDataFont, Helper.BLACK, 1f);
     Draw.Text(gfx, score + " pts.", scoreTxtLoc.x + 75, scoreTxtLoc.y, hudDataFont, Helper.BLACK, 1f);
+    Draw.Text(gfx,highScoreMsg , highScoreLoc.x, highScoreLoc.y, hudDataFont, Helper.BLACK, 1f);
+    Draw.Text(gfx, highScore + " pts.", highScoreLoc.x + 135, highScoreLoc.y, hudDataFont, Helper.BLACK, 1f);
     Draw.Text(gfx,healthMsg,healthTxtLoc.x, healthTxtLoc.y, msgFont1, Helper.BLACK,1f);
     Draw.Text(gfx, health + "/3", healthTxtLoc.x + 75, healthTxtLoc.y, hudDataFont, Helper.BLACK, 1f);
+
+
     Draw.Text(gfx,timerMsg,timerTxtLoc.x,timerTxtLoc.y,hudDataFont, Helper.BLACK, 1f );
     Draw.Text(gfx,(int)(timer/SECOND) + " sec.",timerTxtLoc.x + 75,timerTxtLoc.y,hudDataFont, Helper.BLACK, 1f );
 
@@ -1273,7 +1321,7 @@ public class Main extends AbstractGame
     Draw.Text(gfx, endScoreMsg + score, 190, windowHeight / 2, msgFont1, Helper.YELLOW, 1f);
 
     //Tell the user if they earned the high score!
-    if (score == highScore)
+    if (score == highScore && highScore != 0)
     {
       Draw.Text(gfx, newHighScoreMsg, 170, windowHeight / 2 + 50, msgFont1, Helper.WHITE, 1f);
       Draw.Text(gfx, newHighScoreMsg, 168, windowHeight / 2 + 48, msgFont1, Helper.MAGENTA, 1f);
