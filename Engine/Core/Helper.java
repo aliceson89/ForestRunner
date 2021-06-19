@@ -175,7 +175,7 @@ public class Helper
 	 * &nbsp&nbsp{@code public static boolean Intersects(GameRectangle box, Vector2F pt)}<p>
 	 * Test to see if pt is contained inside of box
 	 * @param box The Rectangle to be tested against
-	 * @param pt The point to be tested to be inside the box 
+	 * @param pt The point to be tested to be inside the box
 	 * @return true if pt lies within all four walls of box, false otherwise
 	 */
 	public static boolean Intersects(GameRectangle box, Vector2F pt)

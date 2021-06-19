@@ -1,8 +1,8 @@
-//Author:
+//Author : Sun Ha
 //File Name: Main.java
 //Project Name: Forest Runner
 //Creation Date: June 8, 2021
-//Modified Date: June 18, 2021
+//Modified Date: June 19, 2021
 //Description:
 
 import java.awt.Font;
@@ -27,8 +27,12 @@ public class Main extends AbstractGame
    */
 
   private static GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-  private static int screenWidth = device.getDisplayMode().getWidth();
-  private static int screenHeight = device.getDisplayMode().getHeight();
+  //private static int screenWidth = device.getDisplayMode().getWidth();
+  //private static int screenHeight = device.getDisplayMode().getHeight();
+
+  //Fix Resolution : 800 * 480
+  private static int screenWidth = 800;
+  private static int screenHeight = 480;
   private static int windowWidth;
   private static int windowHeight;
 
@@ -56,13 +60,25 @@ public class Main extends AbstractGame
   private static int fps = 60;
 
   //Store and set the initial game state, typically MENU to start
-  //private int gameState = GAMEPLAY;
   private int gameState = MENU;
 
   /////////////////////////////////////////////////////////////////////////////////////
   // Define your Global variables and constants here (They do NOT need to be static) //
   /////////////////////////////////////////////////////////////////////////////////////
 
+  //Menu Options
+  static final int PLAY = 1;
+  static final int INSTRUCT =2;
+  static final int EXIT = 3;
+
+
+  //Menu Movement
+  static final float MENU_DELTA_Y = 50f;
+
+  //Main Menu Attributes
+  int menuOption = PLAY;
+
+  static final int MAX_ROUND = 3;
 
   //Player Movement directions
   final int UP = -1;
@@ -70,18 +86,13 @@ public class Main extends AbstractGame
   final int LEFT = 1;
   final int RIGHT = -1;
   final int STOP = 0;
-  final int MAX_BULLETS = 6;
+  final int MAX_BULLETS = 5;
   final int MAX_ENEMIES = 3;
-  static final float BASE_SPEED = 3f;
-  static final float MAX_SPEED = 15f;
-  int numEnemy1 = 1;
-  int numEnemy2 = 1;
-  int numEnemy3 = 2;
   static final int INVALID = -1;
-  //The amount of time between enemy spawns
-  final float SPAWN_TIME = 500;
+
+  //The point when kill the circle enemy
   static final int KILL_PTS = 10;
-  static final int TIME_PTS =1;
+
 
 
   /**
@@ -99,6 +110,7 @@ public class Main extends AbstractGame
   final int WALK = 0;
   final int JUMP = 1;
   final int DUCK = 2;
+
   //Track the forces working against the player every update
   //In this demo the player will not be moving horizontally
   Vector2F forces = new Vector2F(0, GRAVITY);
@@ -122,19 +134,7 @@ public class Main extends AbstractGame
   float maxPlayerSpeed = 7f;
 
 
-  //Menu Options
-  static final int PLAY = 1;
-  static final int INSTRUCT =2;
-  static final int EXIT = 3;
 
-
-  //Menu Movement
-  static final float MENU_DELTA_Y = 115f;
-
-  //Main Menu Attributes
-  int menuOption = PLAY;
-
-  static final int MAX_ROUND = 3;
 
   //SpriteSheet Img Object
   SpriteSheet bg1Img;
@@ -162,10 +162,11 @@ public class Main extends AbstractGame
   //The random speed ranges for the enemy movement
   //Active obstacles will move at a speed of 4.5 pixels/update, to the opposite edge of the screen where they deactivate
   float enemySpeed = 4.5f;
-  float maxEnemySpeed = 10f;
-  float circleFrequency = 1000000f;
-  float rectangles1Frequency = 300000f;
-  float rectangles2Frequency = 700000f;
+
+  //when Player complete each rounds, the difficulties will be increased by the frequency of obstacle.
+  float circleFrequency = 970000f;
+  float rectangles1Frequency = 310000f;
+  float rectangles2Frequency = 710000f;
 
   //-1 == false
   final int NO_OBJECT = -1;
@@ -176,13 +177,14 @@ public class Main extends AbstractGame
   final float BIG_RAD = 15f;
   final float SMALL_RAD = 5f;
 
-  float spawnTimeLeft = SPAWN_TIME;
+
 
 
   //Position of Bullets
   Vector2F [] bulletsPos = new Vector2F[MAX_BULLETS];
 
   float bulletSpeed = 5f;
+
   //location of object
   int xDir = STOP;
   int yDir = STOP;
@@ -207,9 +209,9 @@ public class Main extends AbstractGame
 
 
   //Font Setting
-  Font msgFont1 = new Font("Apple Casual", Font.BOLD, 20);
-  Font msgFont2 = new Font("Apple Casual", Font.BOLD, 35);
-  Font hudTitleFont = new Font("Century Gothic", Font.BOLD, 50);
+  Font msgFont1 = new Font("Apple Casual", Font.BOLD, 14);
+  Font msgFont2 = new Font("Apple Casual", Font.BOLD, 20);
+  Font hudTitleFont = new Font("Century Gothic", Font.BOLD, 30);
   Font hudDataFont = new Font("Century Gothic", Font.BOLD + Font.ITALIC, 20);
 
 
@@ -223,25 +225,6 @@ public class Main extends AbstractGame
   int health= 3;
   float timer = 0;
 
-  //timer
-  //store the amount of time the repeating timer will take before resetting
-  final int REPEAT_TIME = 3000;
-
-  //Store the amount of time the active "ability" will last for
-  //Note: there may be different types of active timers that take different
-  //amount of times, so more constants may be needed
-  final int ACTIVE_TIME = 10000;
-
-  //A timer used to track the total time passed while in game play (in milliseconds)
-  float clockTimer = 0;
-
-  //An automatic timer that ticks down to 0, then produces an action and resets (like an alarm clock)
-  float repeatingTimer = REPEAT_TIME;
-
-  //A timer activated by some event (e.g. picking up a timed power-up). Typically, These
-  //timers can only be activated if not already active
-  float activatedTimer = 0;
-
 
 
 
@@ -254,7 +237,9 @@ public class Main extends AbstractGame
     windowHeight = screenHeight - TITLE_BAR_HEIGHT;
 
     GameContainer gameContainer = new GameContainer(new Main(), gameName, screenWidth, screenHeight, fps);
+    System.out.println("screenWidth: " + screenWidth + "/ screenHeight: " + screenHeight );
     gameContainer.Start();
+
   }
 
   public void LoadContent(GameContainer gc)
@@ -264,7 +249,7 @@ public class Main extends AbstractGame
     titleBGImg = new SpriteSheet(LoadImage.FromFile("resources/images/backgrounds/Forest_Title.png"));
     titleBGImg.destRec = new Rectangle(0,0,windowWidth, windowHeight);
     indicatorImg = new SpriteSheet(LoadImage.FromFile("resources/images/sprites/Arrow.png"));
-    indicatorImg.destRec = new Rectangle(390, 340, indicatorImg.destRec.width, indicatorImg.destRec.height);
+    indicatorImg.destRec = new Rectangle(220, 170, indicatorImg.destRec.width, indicatorImg.destRec.height);
 
     //Load Instruction Menu objects
     InstructImg = new SpriteSheet(LoadImage.FromFile("resources/images/backgrounds/Instruction.png"));
@@ -281,26 +266,28 @@ public class Main extends AbstractGame
 
 
     //Location of Text in GamePlay
-    titleTxtLoc = new Vector2F(windowWidth - 400,65);
-    highScoreLoc = new Vector2F(500,100);
+    titleTxtLoc = new Vector2F(windowWidth - 250,65);
     scoreTxtLoc = new Vector2F(100,100);
-    healthTxtLoc = new Vector2F(300,100);
-    timerTxtLoc = new Vector2F(740,100);
+    healthTxtLoc = new Vector2F(250,100);
+    highScoreLoc = new Vector2F(400,100);
+    timerTxtLoc = new Vector2F(600,100);
 
 
     //Load Player Image
     //Setup the player image, including it screen location, size and true position
+    //playerImg[WALK] = playerImg[0]
     playerImg[WALK] = new SpriteSheet(LoadImage.FromFile("resources/images/sprites/player.png"),1,4,0,4,4);
     playerImg[WALK].destRec = new Rectangle(100,100,playerImg[WALK].GetFrameWidth(),playerImg[WALK].GetFrameHeight());
 
-
+    //playerImg[JUMP] = playerImg[1]
     playerImg[JUMP] = new SpriteSheet(LoadImage.FromFile("resources/images/sprites/player_jump.png"));
     playerImg[JUMP].destRec = new Rectangle(100,100,playerImg[JUMP].GetFrameWidth(),playerImg[JUMP].GetFrameHeight());
 
+    //playerImg[DUCK] = playerImg[2]
     playerImg[DUCK] = new SpriteSheet(LoadImage.FromFile("resources/images/sprites/player_duck.png"));
     playerImg[DUCK].destRec = new Rectangle(100,100,playerImg[DUCK].GetFrameWidth(),playerImg[DUCK].GetFrameHeight());
 
-    //All images will share the same position, however you may have to rethink this if
+
     //all of your player state imagery doesn't have matching sizes!
     playerPos = new Vector2F(playerImg[WALK].destRec.x,playerImg[WALK].destRec.y);
 
@@ -325,14 +312,12 @@ public class Main extends AbstractGame
     }
 
     //Load Circle Enemy Image
-
-    //Create and setup all enemies to be inactive
     for (int i = 0; i < circleEnemies.length; i++)
     {
       circleEnemies[i] = new GameCircle(0,0,BIG_RAD,2,Helper.GREEN,Helper.YELLOW,0);
     }
 
-    //Load enemy2 Image
+    //Load Rectangles1 Obstacle Image
     for (int i = 0; i < rectangles1Enemies.length; i++)
     {
       //GameRectangle(int x, int y, int width, int height, float borderWidth, Color borderColor, Color fillColor, float transparency)
@@ -340,8 +325,7 @@ public class Main extends AbstractGame
     }
 
 
-    //Load enemy3 Image
-
+    //Load Rectangles2 Obstacle Image
     for (int i = 0; i < rectangles2Enemies.length; i++)
     {
       //GameRectangle(int x, int y, int width, int height, float borderWidth, Color borderColor, Color fillColor, float transparency)
@@ -441,7 +425,6 @@ public class Main extends AbstractGame
           //Setup the first round
           SetupFirstRound();
           gameState = GAMEPLAY;
-          System.out.println("Play start");
           break;
 
         case INSTRUCT:
@@ -486,9 +469,6 @@ public class Main extends AbstractGame
     if ( timer % 100000 == 0){
       score ++;
     }
-    //store circle data for collision detection between the bullets and Enemies
-    GameCircle bulletCirc;
-    GameCircle enemyCirc;
 
 
     //Update scrolling screen
@@ -540,6 +520,7 @@ public class Main extends AbstractGame
     /**
      * Player Movement3 :Shoot
      */
+
     //Shoot a bullet on the space key if one is available
     if (Input.IsKeyReleased(KeyEvent.VK_S))
     {
@@ -590,7 +571,7 @@ public class Main extends AbstractGame
      * Enemy 1 : Circle
      * Can kill with bullet
      */
-    //Every specific time to generate Circle enemy
+    //Every specific time to generate Circle enemy 9,18,27
     if (timer % circleFrequency == 0)
     {
       //Find the first inactive enemy
@@ -734,21 +715,32 @@ public class Main extends AbstractGame
       }
     }
 
-    /*If an active enemy leaves the left of the screen, deactivate it and reduce score
+    /////////////////////
+    // Handle Collisions
+    /////////////////////
+
+    //Collision detection
+    //Enemies vs player
+    //If an active enemy hits the player, deactivate it and reduce health
     for (int i = 0; i < rectangles1Enemies.length; i++)
     {
-      //Only collide active enemies
+      //Only collied active enemies
       if (rectangles1Enemies[i].GetTransparency() > 0)
       {
-        //Has the enemy completely passed the left edge
-        if (rectangles1Enemies[i].GetCentre().x + rectangles1Enemies[i].GetRec().getWidth() <= 0)
+        //Does the current enemy intersect the player
+        //public static boolean Intersects(Rectangle box, Vector2F pt)
+        if (Helper.Intersects(rectangles1Enemies[i],playerPos))
         {
+          //Deactivate the enemy
+          System.out.println("Collision");
           rectangles1Enemies[i].SetTransparency(0);
+          health -= 1;
+
         }
       }
     }
 
-     */
+
 
     /**
      * Enemy 3 : Rectangles2
@@ -765,7 +757,7 @@ public class Main extends AbstractGame
       if (spawnIdx != NO_OBJECT)
       {
         rectangles2Enemies[spawnIdx].SetTransparency(1f);
-        rectangles2Enemies[spawnIdx].TranslateTo(windowWidth- rectangles2Enemies[spawnIdx].GetLeft(),windowHeight-(int)playerImg[WALK].destRec.getHeight());
+        rectangles2Enemies[spawnIdx].TranslateTo(windowWidth- rectangles2Enemies[spawnIdx].GetLeft(),windowHeight-(int)playerImg[WALK].destRec.getHeight()-20);
       }
     }
 
@@ -785,22 +777,22 @@ public class Main extends AbstractGame
       }
     }
 
-    /*If an active enemy leaves the left of the screen, deactivate it and reduce score
     for (int i = 0; i < rectangles2Enemies.length; i++)
     {
-      //Only collide active enemies
+      //Only collied active enemies
       if (rectangles2Enemies[i].GetTransparency() > 0)
       {
-        //Has the enemy completely passed the left edge
-        if (rectangles2Enemies[i].GetCentre().x + rectangles2Enemies[i].GetRec().getWidth() <= 0)
+        //Does the current enemy intersect the player
+        //public static boolean Intersects(Rectangle box, Vector2F pt)
+        if (Helper.Intersects(rectangles2Enemies[i],playerPos))
         {
+          //Deactivate the enemy
           rectangles2Enemies[i].SetTransparency(0);
+          health -= 1;
+
         }
       }
     }
-    */
-
-
 
 
 
@@ -812,17 +804,14 @@ public class Main extends AbstractGame
 
 
     //4: All enemies destroyed and game is not over
-    //condition1 : not game end
+    //condition1 : not game end and start next round
     if ((gameState != ENDGAME) && (timer == 3000000) && (health >= 1) && (roundNum <4))
     {
       //Player won the round
-      //endRoundText.UpdateText(endRoundMsg + roundNum);
       roundNum = Math.min(roundNum + 1, MAX_ROUND);
       gameState = ENDROUND;
       //condition2 : game end
     }
-
-
 
 
   }
@@ -983,7 +972,7 @@ public class Main extends AbstractGame
 
   }
 
-  //bullets and enemies
+  // For bullets and enemies
   private int FindInactiveObject(SpriteSheet [] objects)
   {
     for (int i = 0; i < objects.length; i++)
@@ -1090,6 +1079,24 @@ public class Main extends AbstractGame
     return INVALID;
   }
 
+  //Pre: x and y are valid coordinates on the screen
+  //Post: None
+  //Desc: An explosion animation is set to begin at the given location
+  private void TriggerExplosion(int x, int y)
+  {
+    //Find the first available explosion animation
+    int index = FindInactiveIndex(explosions, explosions.length);
+
+    //Activate the explosion if possible
+    if (index >= 0)
+    {
+      explosions[index].destRec.x = x;
+      explosions[index].destRec.y = y;
+      explosions[index].StartAnimation(1);
+    }
+  }
+
+
 
 
   //Pre: gc is the Game controller
@@ -1125,21 +1132,17 @@ public class Main extends AbstractGame
   //Desc: Set all game data except round and score back to their starting values
   private void SetupRound()
   {
-    //Track data used for placing enemies evenly on the screen
-    int spacing;
-    int posX;
-    int posY;
-
-    //Store the index of a game object to be activated
-    int index = INVALID;
 
     timer = 0;
     //set circle enemy frequency
-    circleFrequency -= 100000;
+    circleFrequency -= 170000;
+    System.out.println(circleFrequency);
     //set rectangles1 enemy frequency
-    rectangles1Frequency -= 100000;
+    rectangles1Frequency -= 130000;
+    System.out.println(rectangles1Frequency);
     //set rectangles2 enemy frequency
-    rectangles2Frequency -= 100000;
+    rectangles2Frequency -= 110000;
+    System.out.println(rectangles2Frequency);
 
 
 
@@ -1159,14 +1162,13 @@ public class Main extends AbstractGame
 
   }
 
+  //Pre: None
+  //Post: None
+  //Desc: Set all game data for First Round
   private void SetupFirstRound()
- {
+  {
 
     timer = 0;
-    circleFrequency = 1000000f;
-    rectangles1Frequency = 300000f;
-    rectangles2Frequency = 700000f;
-
     xDir = RIGHT;
 
     //Reset bullets
@@ -1179,25 +1181,11 @@ public class Main extends AbstractGame
       explosions[i].destRec.x = (int)INACTIVE.x;
       explosions[i].destRec.y = (int)INACTIVE.y;
     }
-}
-
-
-  //Pre: x and y are valid coordinates on the screen
-  //Post: None
-  //Desc: An explosion animation is set to begin at the given location
-  private void TriggerExplosion(int x, int y)
-  {
-    //Find the first available explosion animation
-    int index = FindInactiveIndex(explosions, explosions.length);
-
-    //Activate the explosion if possible
-    if (index >= 0)
-    {
-      explosions[index].destRec.x = x;
-      explosions[index].destRec.y = y;
-      explosions[index].StartAnimation(1);
-    }
   }
+
+
+
+
 
   //Pre: gfx is the window being drawn to
   //Post: None
@@ -1264,19 +1252,20 @@ public class Main extends AbstractGame
     }
 
 
+    //Draw Text in the Game Play
 
     Draw.Text(gfx,gameName,titleTxtLoc.x,titleTxtLoc.y,hudTitleFont,Helper.DEEPBLUE,0.6f);
 
-    Draw.Text(gfx,scoreMsg , scoreTxtLoc.x, scoreTxtLoc.y, hudDataFont, Helper.BLACK, 1f);
-    Draw.Text(gfx, score + " pts.", scoreTxtLoc.x + 75, scoreTxtLoc.y, hudDataFont, Helper.BLACK, 1f);
-    Draw.Text(gfx,highScoreMsg , highScoreLoc.x, highScoreLoc.y, hudDataFont, Helper.BLACK, 1f);
-    Draw.Text(gfx, highScore + " pts.", highScoreLoc.x + 135, highScoreLoc.y, hudDataFont, Helper.BLACK, 1f);
+    Draw.Text(gfx,scoreMsg , scoreTxtLoc.x, scoreTxtLoc.y, msgFont1, Helper.BLACK, 1f);
+    Draw.Text(gfx, score + " pts.", scoreTxtLoc.x + 70, scoreTxtLoc.y, msgFont1, Helper.BLACK, 1f);
+    Draw.Text(gfx,highScoreMsg , highScoreLoc.x, highScoreLoc.y, msgFont1, Helper.BLACK, 1f);
+    Draw.Text(gfx, highScore + " pts.", highScoreLoc.x + 115, highScoreLoc.y, msgFont1, Helper.BLACK, 1f);
     Draw.Text(gfx,healthMsg,healthTxtLoc.x, healthTxtLoc.y, msgFont1, Helper.BLACK,1f);
-    Draw.Text(gfx, health + "/3", healthTxtLoc.x + 75, healthTxtLoc.y, hudDataFont, Helper.BLACK, 1f);
+    Draw.Text(gfx, health + "/3", healthTxtLoc.x + 70, healthTxtLoc.y, msgFont1, Helper.BLACK, 1f);
 
 
-    Draw.Text(gfx,timerMsg,timerTxtLoc.x,timerTxtLoc.y,hudDataFont, Helper.BLACK, 1f );
-    Draw.Text(gfx,(int)(timer/SECOND) + " sec.",timerTxtLoc.x + 75,timerTxtLoc.y,hudDataFont, Helper.BLACK, 1f );
+    Draw.Text(gfx,timerMsg,timerTxtLoc.x,timerTxtLoc.y,msgFont1, Helper.BLACK, 1f );
+    Draw.Text(gfx,(int)(timer/SECOND) + " sec.",timerTxtLoc.x + 70,timerTxtLoc.y,msgFont1, Helper.BLACK, 1f );
 
   }
 
@@ -1286,13 +1275,12 @@ public class Main extends AbstractGame
     //Loop through each SpriteSheet
     for (int i = 0; i < objects.length; i++)
     {
-      //Only draw the objects not at the inactive location
-      //if(objects[i].destRec.x != INACTIVE.x)
-      //{
+
       Draw.Sprite(gfx, objects[i]);
-      //}
     }
   }
+
+
   //Pre: gfx is the window being drawn to
   //Post: None
   //Desc: Draw the End Round state
@@ -1318,17 +1306,17 @@ public class Main extends AbstractGame
 
 
     //Draw HUD Elements
-    Draw.Text(gfx, endScoreMsg + score, 190, windowHeight / 2, msgFont1, Helper.YELLOW, 1f);
+    Draw.Text(gfx, endScoreMsg + score, 190, windowHeight / 2, msgFont2, Helper.BLACK, 1f);
 
     //Tell the user if they earned the high score!
     if (score == highScore && highScore != 0)
     {
-      Draw.Text(gfx, newHighScoreMsg, 170, windowHeight / 2 + 50, msgFont1, Helper.WHITE, 1f);
-      Draw.Text(gfx, newHighScoreMsg, 168, windowHeight / 2 + 48, msgFont1, Helper.MAGENTA, 1f);
+      Draw.Text(gfx, newHighScoreMsg, 170, windowHeight / 2 + 50, msgFont2, Helper.WHITE, 1f);
+      Draw.Text(gfx, newHighScoreMsg, 168, windowHeight / 2 + 48, msgFont2, Helper.DEEPBLUE, 1f);
     }
 
     //Display Enter to continue message
-    Draw.Text(gfx, returnMenuMsg, 160, windowHeight - 30, msgFont1, Helper.RED, 1f);
+    Draw.Text(gfx, returnMenuMsg, 160, windowHeight - 30, msgFont2, Helper.DEEPBLUE, 1f);
   }
 
 
@@ -1339,7 +1327,10 @@ public class Main extends AbstractGame
   {
     score = 0;
     roundNum = 1;
-    SetupRound();
+    health = 3;
+    circleFrequency = 970000f;
+    rectangles1Frequency = 310000f;
+    rectangles2Frequency = 710000f;
 
   }
 
